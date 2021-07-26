@@ -1,0 +1,2 @@
+sss :- write('Hej hopp').
+
