@@ -44,6 +44,6 @@
 	- But where draw the line. 
 	- Nice to be able to share also properties by using "link predicates". Makes it easier to search and back link. 
 * Can there be three types of properties:
-	- A completely local one, ex "age" (typed primitive, stored in node). Indexed.
-	- One that can be shared by other nodes, like a year, "1959". (typed primitive, stored in node). Indexed. 
+	- A completely local one, ex "age" (typed primitive, stored in node). 
+	- One that can be shared by other nodes, like a year, "1959". (typed primitive, stored in node)
 	- Relations to other nodes. Link to Other Node. 

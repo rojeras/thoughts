@@ -1,0 +1,3 @@
+node(1,task,string("Fixa kanoterna"),[prop(prio,int(42))],meta(timestamp("2021-07-28 12:08:16"),active)) .
+node(2,task,string("Köp vajer"),[],meta(timestamp("2021-07-28 12:08:17"),active)) .
+relation(1,1,2,parent_child,"Parent task","Subtask",meta(active,timestamp("2021-07-28 12:08:16"))) .
