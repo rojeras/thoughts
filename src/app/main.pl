@@ -1,25 +1,38 @@
 :- dynamic(node/5) .
 :- dynamic(relation/7) .
 
+:- use_module(leolib).
 
 go :-
     write("Starting me").
 
+/*
 % Base types
-% node(id, node_type, short_name, property_list, create_time, status) .
-%  relation(id, source_id, target_id, relation_type, relation_list, property_list) .
-%  property_types([string("sss"), int(42), float('12,2'),
-% date('2021-07-26')]) .
+% All modification stored, all history available in the db. Also all access time stamps.
+node(id, node_type, short_name, property_list, meta(version, status,timestamps([deleted, accessed, accessed, modified, accessed, created]) .
+relation(id, source_id, target_id, relation_type, relation_list,
+property_list) . property_types([string("sss"), int(42), float('12,2'),
+date('2021-07-26')]) .
 
 % Polymorphic methods
 add(int(A), int(B), int(C)) :- ! , plus(A, B, C) .
-/*
+*/
+
 node(
     1,
     task,
     string("Fixa kanoterna"),
     [prop(prio, int(42))],
-    meta(timestamp("2021-07-28 12:08:16"), active)
+    meta(1, created, timestamps(["2021-07-28 12:08:16", "..."] ))
+    ) .
+
+
+node(
+    1,
+    task,
+    string("Fixa kanoterna"),
+    [prop(prio, int(42))],
+    meta(2, modified, timestamps(["2021-07-29 12:08:16", "...", "..."] ))
     ) .
 
 node(
@@ -45,7 +58,7 @@ relation(
              timestamp("2021-07-28 12:08:16")
          )
        ) .
-*/
+
 
 
 node_types([task]) .
@@ -58,6 +71,21 @@ primitive_types(
     ]
 ) .
 
+% -----------------------------------------------------------------------
+
+load_all :-
+    remove_all ,
+    consult("thoughts.db") ,
+    node_max_id(Max) ,
+    write(Max) ,
+    l_counter_get(dbCounter, _) .
+   % l_counter_set(node_id_max, Max ).
+
+node_max_id(Max) :-
+    findall(Id, node(Id, _, _, _, _), Id_list) ,
+    max_list(Id_list, Max) .
+
+% -----------------------------------------------------------------------
 
 store_all :-
     open("thoughts.db", write, Stream, []) ,
@@ -80,4 +108,19 @@ store_relations(Stream) :-
     nl(Stream) ,
     fail.
 store_relations(_) .
+
+% -----------------------------------------------------------------------
+
+remove_all :-
+    retractall(node(_, _, _, _, _ )) ,
+    retractall(relation(_, _, _, _, _, _, _)) .
+
+
+
+
+
+
+
+
+
 

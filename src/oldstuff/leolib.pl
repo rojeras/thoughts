@@ -1,1 +1,1 @@
-../lib/leolib.pl
+../app/leolib.pl
