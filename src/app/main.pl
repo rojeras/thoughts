@@ -1,10 +1,10 @@
-:- dynamic(node/5) .
+:- dynamic(node/7) .
 :- dynamic(relation/7) .
 
 :- use_module(leolib).
 
 go :-
-    write("Starting me").
+    write("Starting me again").
 
 /*
 % Base types
@@ -18,34 +18,38 @@ date('2021-07-26')]) .
 add(int(A), int(B), int(C)) :- ! , plus(A, B, C) .
 */
 
+/*
 node(
+    1,
     1,
     task,
     string("Fixa kanoterna"),
     [prop(prio, int(42))],
-    meta(1, created, timestamps(["2021-07-28 12:08:16", "..."] ))
+    ["2021-07-28 12:08:16", "..."] ,
+    inactive
     ) .
 
 
 node(
     1,
+    2,
     task,
     string("Fixa kanoterna"),
     [prop(prio, int(42))],
-    meta(2, modified, timestamps(["2021-07-29 12:08:16", "...", "..."] ))
+    ["2021-07-29 12:08:16", "...", "..."] ,
+    active
     ) .
 
 node(
     2,
+    1,
     task,
-    string("Köp vajer"),
-    [],
-    meta(
-        timestamp("2021-07-28 12:08:17"),
-        active
-    )
+    string("Fixa sss"),
+    [prop(prio, int(42))],
+    ["2021-07-29 12:08:16", "...", "..."] ,
+    deleted
     ) .
-
+*/
 relation(
     1,
          1,
@@ -59,6 +63,14 @@ relation(
          )
        ) .
 
+% -----------------------------------------------------------------------
+add_node(Type, Name, Properties) :-
+    l_counter_inc(node_id_max, Id) ,
+    assertz(node(Id, 0, Type, Name, Properties, [time], active )) ,
+    store_all.
+
+
+% -----------------------------------------------------------------------
 
 
 node_types([task]) .
@@ -81,7 +93,7 @@ load_all :-
     l_counter_set(node_id_max, Max ).
 
 node_max_id(Max) :-
-    findall(Id, node(Id, _, _, _, _), Id_list) ,
+    findall(Id, node(Id, _, _, _, _, _, _), Id_list) ,
     max_list(Id_list, Max) .
 
 % -----------------------------------------------------------------------
@@ -93,8 +105,8 @@ store_all :-
     close(Stream).
 
 store_nodes(Stream) :-
-    node(A, B, C, D, E) ,
-    writeq(Stream, node(A, B, C, D, E)) ,
+    node(A, B, C, D, E, F, G) ,
+    writeq(Stream, node(A, B, C, D, E, F, G)) ,
     write(Stream, " ."),
     nl(Stream) ,
     fail.
@@ -111,7 +123,7 @@ store_relations(_) .
 % -----------------------------------------------------------------------
 
 remove_all :-
-    retractall(node(_, _, _, _, _ )) ,
+    retractall(node(_, _, _, _, _, _, _ )) ,
     retractall(relation(_, _, _, _, _, _, _)) .
 
 

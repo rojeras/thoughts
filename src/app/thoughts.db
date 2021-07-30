@@ -1,3 +1,5 @@
-node(1,task,string("Fixa kanoterna"),[prop(prio,int(42))],meta(timestamp("2021-07-28 12:08:16"),active)) .
-node(2,task,string("Köp vajer"),[],meta(timestamp("2021-07-28 12:08:17"),active)) .
+node(1,1,task,string("Fixa kanoterna"),[prop(prio,int(42))],["2021-07-28 12:08:16","..."],inactive) .
+node(1,2,task,string("Fixa kanoterna"),[prop(prio,int(42))],["2021-07-29 12:08:16","...","..."],active) .
+node(2,1,task,string("Fixa sss"),[prop(prio,int(42))],["2021-07-29 12:08:16","...","..."],deleted) .
+node(3,0,task,"ny node",[],[time],active) .
 relation(1,1,2,parent_child,"Parent task","Subtask",meta(active,timestamp("2021-07-28 12:08:16"))) .
