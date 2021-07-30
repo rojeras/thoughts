@@ -78,8 +78,7 @@ load_all :-
     consult("thoughts.db") ,
     node_max_id(Max) ,
     write(Max) ,
-    l_counter_get(dbCounter, _) .
-   % l_counter_set(node_id_max, Max ).
+    l_counter_set(node_id_max, Max ).
 
 node_max_id(Max) :-
     findall(Id, node(Id, _, _, _, _), Id_list) ,
