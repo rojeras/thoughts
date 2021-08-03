@@ -51,28 +51,42 @@ node(
     ) .
 */
 relation(
-    1,
-         1,
-         2,
-         parent_child,
-         "Parent task",
-         "Subtask",
-         meta(
-             active,
-             timestamp("2021-07-28 12:08:16")
-         )
-       ) .
+    1, % Id
+    2, % Version
+    1, % Parent node id
+    2, % Child node id
+    parent_child, % Relation type
+    "Parent task", % Parent node label in relation
+    "Subtask", % Child node label in relation
+    [prop(prio, int(42))], % Properties
+    ["2021-07-29 12:08:16", "...", "..."] , % Time stamps
+    active % status
+   ) .
 
+% -----------------------------------------------------------------------
+%
+
+/**
+ * External Prolog API to nodes and relations
+ */
 % -----------------------------------------------------------------------
 add_node(Type, Name, Properties) :-
     l_counter_inc(node_id_max, Id) ,
     assertz(node(Id, 0, Type, Name, Properties, [time], active )) ,
     store_all.
-
-
 % -----------------------------------------------------------------------
-
-
+remove_node(Node_id) .
+% -----------------------------------------------------------------------
+update_node_name(Node_id, Name) .
+% -----------------------------------------------------------------------
+add_node_property(Node_id, Property_name, Property_value) .
+% -----------------------------------------------------------------------
+remove_node_property(Node_id, Property_name) .
+% -----------------------------------------------------------------------
+start_transaction . % Save current DB to temp file
+commit . % Save the db to file.
+rollback . % Re-load temp file.
+% -----------------------------------------------------------------------
 node_types([task]) .
 relation_types([parent_child]) .
 primitive_types(
