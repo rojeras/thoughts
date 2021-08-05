@@ -1,5 +1,5 @@
-:- dynamic(node/7) .
-:- dynamic(relation/7) .
+:- dynamic(db_node/7) .
+:- dynamic(db_relation/10) .
 
 :- use_module(leolib).
 
@@ -17,20 +17,38 @@ date('2021-07-26')]) .
 % Polymorphic methods
 add(int(A), int(B), int(C)) :- ! , plus(A, B, C) .
 */
-
 /*
-node(
-    1,
-    1,
-    task,
-    string("Fixa kanoterna"),
-    [prop(prio, int(42))],
-    ["2021-07-28 12:08:16", "..."] ,
-    inactive
+=======================================================================
+Definition of DB terms. These are made persistant.
+=======================================================================
+
+db_node(
+    Id,
+    Version,
+    Typek,
+    Name,
+    Property_list,
+    Timestamp_list ,
+    Status
     ) .
 
+db_relation(
+    Id,
+    Version,
+    Parent_node_id,
+    Child_node_id,
+    Relation_type,
+    Parent_node_label,
+    Child_node_label,
+    Property_list,
+    Timestamp_list,
+    Status
+   ) .
+=========================================================================
+*/
 
-node(
+/*
+db_node(
     1,
     2,
     task,
@@ -40,7 +58,7 @@ node(
     active
     ) .
 
-node(
+db_node(
     2,
     1,
     task,
@@ -50,7 +68,7 @@ node(
     deleted
     ) .
 */
-relation(
+db_relation(
     1, % Id
     2, % Version
     1, % Parent node id
@@ -63,52 +81,90 @@ relation(
     active % status
    ) .
 
+
 % -----------------------------------------------------------------------
 %
 
+% =======================================================================
 /**
  * External Prolog API to nodes and relations
  */
+
+load_all :- impl_load_all.
 % -----------------------------------------------------------------------
-add_node(Type, Name, Properties) :-
-    l_counter_inc(node_id_max, Id) ,
-    assertz(node(Id, 0, Type, Name, Properties, [time], active )) ,
-    store_all.
+add_node(Type, Name, Id) :- impl_add_node(Type, Name, Id) .
+
 % -----------------------------------------------------------------------
-remove_node(Node_id) .
+remove_node(Node_id) :- impl_remove_node(Node_id) .
 % -----------------------------------------------------------------------
-update_node_name(Node_id, Name) .
+update_node_name(_Node_id, _Name) .
 % -----------------------------------------------------------------------
-add_node_property(Node_id, Property_name, Property_value) .
+add_node_property(Node_id, Property_name, Property_value) :- impl_add_node_property(Node_id, Property_name, Property_value) .
 % -----------------------------------------------------------------------
-remove_node_property(Node_id, Property_name) .
+remove_node_property(_Node_id, _Property_name) .
+% -----------------------------------------------------------------------
+add_relation(_Relation_type, _Parent_node_id, _Child_node_id, _Parent_label, _Child_label, _Out_relation_id) .
+remove_relation(_In_relation_id) .
+add_relation_property(_Node_id, _Property_name, _Property_value) .
+% -----------------------------------------------------------------------
+remove_relation_property(_Node_id, _Property_name) .
+% -----------------------------------------------------------------------
+get_node_types(_Type_list) .
+get_relation_types(_Type_list) .
 % -----------------------------------------------------------------------
 start_transaction . % Save current DB to temp file
 commit . % Save the db to file.
 rollback . % Re-load temp file.
 % -----------------------------------------------------------------------
-node_types([task]) .
-relation_types([parent_child]) .
-primitive_types(
-    [
-     string,
-     timestamp,
-     prio
-    ]
-) .
 
+
+% =======================================================================
 % -----------------------------------------------------------------------
+%
 
-load_all :-
+impl_load_all :-
     remove_all ,
-    consult("thoughts.db") ,
-    node_max_id(Max) ,
-    write(Max) ,
-    l_counter_set(node_id_max, Max ).
+    consult("thoughts.db") .
 
-node_max_id(Max) :-
-    findall(Id, node(Id, _, _, _, _, _, _), Id_list) ,
+impl_add_node(Type, Name, Id) :-
+    max_node_id(Max) ,
+    Id is Max + 1 ,
+    current_timestamp(Timestamp) ,
+    assertz(db_node(Id, 0, Type, Name, [], [Timestamp], active )) .
+
+impl_add_node_property(Id, Property_name, Property_value) :-
+    db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
+    deactivate_node(Id) ,
+    New_ver is Ver + 1 ,
+    current_timestamp(Timestamp) ,
+    assertz(db_node(Id, New_ver, Type, Name, [property(Property_name, Property_value) | Property_list], [Timestamp | Timestamp_list], active )) .
+
+impl_remove_node(Id) :-
+    % Also need to remove relations
+    db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
+    deactivate_node(Id) ,
+    New_ver is Ver + 1 ,
+    current_timestamp(Timestamp) ,
+    assertz(db_node(Id, New_ver, Type, Name, Property_list, [Timestamp | Timestamp_list], removed )) .
+
+
+deactivate_node(Id) :-
+     db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
+     retractall(db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active )) ,
+     assertz(db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, inactive )) .
+
+/*
+impl_remove_node(Node_id) :-
+    remove_all_relations_for_node(Node_id) ,
+    remove_node(Node_id).
+
+remove_all_relations_for_node(Node_id) :-
+    db_
+*/
+max_node_id(Max) :-
+    findall(Id, db_node(Id, _, _, _, _, _, _), Id_list) ,
     max_list(Id_list, Max) .
+max_node_id(0) .
 
 % -----------------------------------------------------------------------
 
@@ -119,28 +175,32 @@ store_all :-
     close(Stream).
 
 store_nodes(Stream) :-
-    node(A, B, C, D, E, F, G) ,
-    writeq(Stream, node(A, B, C, D, E, F, G)) ,
+    db_node(A, B, C, D, E, F, G) ,
+    writeq(Stream, db_node(A, B, C, D, E, F, G)) ,
     write(Stream, " ."),
     nl(Stream) ,
     fail.
 store_nodes(_) .
 
 store_relations(Stream) :-
-    relation(A, B, C, D, E, F, G) ,
-    writeq(Stream, relation(A, B, C, D, E, F, G)) ,
+    db_relation(A, B, C, D, E, F, G) ,
+    writeq(Stream, db_relation(A, B, C, D, E, F, G)) ,
     write(Stream, " ."),
     nl(Stream) ,
     fail.
 store_relations(_) .
-
 % -----------------------------------------------------------------------
 
+current_timestamp(TimeStamp) :-
+    get_time(T),
+    stamp_date_time(T, TimeStamp, 'UTC').
+
 remove_all :-
-    retractall(node(_, _, _, _, _, _, _ )) ,
-    retractall(relation(_, _, _, _, _, _, _)) .
+    retractall(db_node(_, _, _, _, _, _, _ )) ,
+    retractall(db_relation(_, _, _, _, _, _, _, _, _, _)) .
 
 
+% =======================================================================
 
 
 
