@@ -67,7 +67,7 @@ db_node(
     ["2021-07-29 12:08:16", "...", "..."] ,
     deleted
     ) .
-*/
+
 db_relation(
     1, % Id
     2, % Version
@@ -80,10 +80,31 @@ db_relation(
     ["2021-07-29 12:08:16", "...", "..."] , % Time stamps
     active % status
    ) .
+*/
 
+go1 :-
+    add_node(task, "Wash the car", N1),
+    update_node_name(N1, "Wash the Skoda") ,
+    add_node_property(N1, mark, "Skoda"),
+    add_node_property(N1, color, "gray") ,
+    dump(node(N1)) .
 
 % -----------------------------------------------------------------------
-%
+dump(node(Id)) :-
+    get_node(Id, Type, Name) ,
+    l_write_list(["Node dump.", nl, " Id: ", Id, nl, " Type: ", Type, nl, " Name: ", Name, nl, " Properties:", nl ]) ,
+    dump_properties(node(Id)) .
+
+
+dump_properties(node(Id)) :-
+    get_node_property_names(Id, Property_name_list) ,
+    dump_node_properties2(Id, Property_name_list) .
+
+dump_node_properties2(_Id, []) :- ! .
+dump_node_properties2(Id, [Name | Rest_of_names]) :-
+    get_node_property_value(Id, Name, Value) ,
+    l_write_list(["   ", Name ," : ", Value , nl]),
+    dump_node_properties2(Id, Rest_of_names) .
 
 % =======================================================================
 /**
@@ -92,16 +113,21 @@ db_relation(
 
 load_all :- impl_load_all.
 % -----------------------------------------------------------------------
-add_node(Type, Name, Id) :- impl_add_node(Type, Name, Id) .
+get_node(Id, Type, Name) :- impl_get(node(Id), Type, Name) .
+
+add_node(Type, Name, Id) :- impl_add_node(node(Id), Type, Name) .
+
+get_node_property_names(Id, List_of_property_names) :- impl_get_property_names(node(Id), List_of_property_names) .
+get_node_property_value(Id, Property_name, Value) :- impl_get_property_value(node(Id), Property_name, Value) .
 
 % -----------------------------------------------------------------------
-remove_node(Node_id) :- impl_remove_node(Node_id) .
+remove_node(Node_id) :- impl_remove(node(Node_id)) .
 % -----------------------------------------------------------------------
-update_node_name(_Node_id, _Name) .
+update_node_name(Node_id, Name) :- impl_update_name(node(Node_id), Name) .
 % -----------------------------------------------------------------------
-add_node_property(Node_id, Property_name, Property_value) :- impl_add_node_property(Node_id, Property_name, Property_value) .
+add_node_property(Node_id, Property_name, Property_value) :- impl_add_property(node(Node_id), Property_name, Property_value) .
 % -----------------------------------------------------------------------
-remove_node_property(_Node_id, _Property_name) .
+remove_node_property(Node_id, Property_name) :- impl_remove_property(node(Node_id), Property_name) .
 % -----------------------------------------------------------------------
 add_relation(_Relation_type, _Parent_node_id, _Child_node_id, _Parent_label, _Child_label, _Out_relation_id) .
 remove_relation(_In_relation_id) .
@@ -120,35 +146,74 @@ rollback . % Re-load temp file.
 
 % =======================================================================
 % -----------------------------------------------------------------------
-%
+% The goal is to have the internal API polomorphic. No type in the
+% predicate names.
 
 impl_load_all :-
     remove_all ,
     consult("thoughts.db") .
 
-impl_add_node(Type, Name, Id) :-
+impl_get(node(Id), Type, Name) :- db_node(Id, _Ver, Type, Name, _Property_list, _Timestamp_list, active ) .
+
+impl_get_property_names(node(Id), List_of_property_names) :-
+    db_node(Id, _Ver, _Type, _Name, Property_list, _Timestamp_list, active ) ,
+    extract_property_names(Property_list, List_of_property_names) .
+
+
+extract_property_names([], [] ) :- ! .
+extract_property_names([property(Name, _Value) | Restof_props], [Name | Restof_names]) :-
+    extract_property_names(Restof_props, Restof_names) .
+
+impl_get_property_value(node(Id), Property_name, Value) :-
+    db_node(Id, _Ver, _Type, _Name, Property_list, _Timestamp_list, active ) ,
+    extract_property_value(Property_name, Property_list, Value) .
+
+extract_property_value(_Name, [], _Value ) :- ! , fail.
+extract_property_value(Name, [property(Name, Value) | _Restof_props], Value) :- ! .
+extract_property_value(Name, [property(_Name, _Value) | Restof_props], Value) :-
+    extract_property_value(Name, Restof_props, Value) .
+
+impl_add_node(node(Id), Type, Name) :-
     max_node_id(Max) ,
     Id is Max + 1 ,
     current_timestamp(Timestamp) ,
     assertz(db_node(Id, 0, Type, Name, [], [Timestamp], active )) .
 
-impl_add_node_property(Id, Property_name, Property_value) :-
+impl_add_property(node(Id), Property_name, Property_value) :-
     db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
-    deactivate_node(Id) ,
+    \+ member(property(Property_name, _), Property_list), % Ensure the proprety does not already exist
+    deactivate(node(Id)) ,
     New_ver is Ver + 1 ,
     current_timestamp(Timestamp) ,
     assertz(db_node(Id, New_ver, Type, Name, [property(Property_name, Property_value) | Property_list], [Timestamp | Timestamp_list], active )) .
 
-impl_remove_node(Id) :-
+impl_remove_property(node(Id), Property_name) :-
+    db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
+    member(property(Property_name, _) , Property_list) ,
+    subtract(Property_list, [property(Property_name, _)], Updated_property_list) ,
+    deactivate(node(Id)) ,
+    New_ver is Ver + 1 ,
+    current_timestamp(Timestamp) ,
+    assertz(db_node(Id, New_ver, Type, Name, Updated_property_list, [Timestamp | Timestamp_list], active )) .
+
+
+impl_update_name(node(Id), NewName) :-
+    db_node(Id, Ver, Type, _OldName, Property_list, Timestamp_list, active ) ,
+    deactivate(node(Id)) ,
+    New_ver is Ver + 1 ,
+    current_timestamp(Timestamp) ,
+    assertz(db_node(Id, New_ver, Type, NewName, Property_list, [Timestamp | Timestamp_list], active )) .
+
+impl_remove(node(Id)) :-
     % Also need to remove relations
     db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
-    deactivate_node(Id) ,
+    deactivate(node(Id)) ,
     New_ver is Ver + 1 ,
     current_timestamp(Timestamp) ,
     assertz(db_node(Id, New_ver, Type, Name, Property_list, [Timestamp | Timestamp_list], removed )) .
 
 
-deactivate_node(Id) :-
+deactivate(node(Id)) :-
      db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active ) ,
      retractall(db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, active )) ,
      assertz(db_node(Id, Ver, Type, Name, Property_list, Timestamp_list, inactive )) .
@@ -183,8 +248,8 @@ store_nodes(Stream) :-
 store_nodes(_) .
 
 store_relations(Stream) :-
-    db_relation(A, B, C, D, E, F, G) ,
-    writeq(Stream, db_relation(A, B, C, D, E, F, G)) ,
+    db_relation(A, B, C, D, E, F, G, H, I, J) ,
+    writeq(Stream, db_relation(A, B, C, D, E, F, G, H, I, J)) ,
     write(Stream, " ."),
     nl(Stream) ,
     fail.
@@ -201,6 +266,7 @@ remove_all :-
 
 
 % =======================================================================
+
 
 
 

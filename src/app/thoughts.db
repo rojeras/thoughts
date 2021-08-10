@@ -1,5 +1,5 @@
-node(1,1,task,string("Fixa kanoterna"),[prop(prio,int(42))],["2021-07-28 12:08:16","..."],inactive) .
-node(1,2,task,string("Fixa kanoterna"),[prop(prio,int(42))],["2021-07-29 12:08:16","...","..."],active) .
-node(2,1,task,string("Fixa sss"),[prop(prio,int(42))],["2021-07-29 12:08:16","...","..."],deleted) .
-node(3,0,task,"ny node",[],[time],active) .
-relation(1,1,2,parent_child,"Parent task","Subtask",meta(active,timestamp("2021-07-28 12:08:16"))) .
+db_node(1,0,task,task1,[],[date(2021,8,10,8,57,4.473814725,0,'UTC',-)],active) .
+db_node(3,0,task,task3,[],[date(2021,8,10,8,57,12.114398479,0,'UTC',-)],active) .
+db_node(2,0,task,task2,[],[date(2021,8,10,8,57,7.688340663,0,'UTC',-)],inactive) .
+db_node(2,1,task,task2,[property(prop1,kalle)],[date(2021,8,10,8,57,34.560256004,0,'UTC',-),date(2021,8,10,8,57,7.688340663,0,'UTC',-)],inactive) .
+db_node(2,2,task,task2,[property(prop2,kula),property(prop1,kalle)],[date(2021,8,10,8,57,42.980769157,0,'UTC',-),date(2021,8,10,8,57,34.560256004,0,'UTC',-),date(2021,8,10,8,57,7.688340663,0,'UTC',-)],active) .
