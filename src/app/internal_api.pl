@@ -21,9 +21,9 @@
 
 load_all :- impl_load_all.
 % -----------------------------------------------------------------------
-get_node(Id, Type, Name) :- impl_get(node(Id), Type, Name) .
+get_node(Type, Name, Id) :- impl_get(node(Id), Type, Name) .
 
-get_all_nodes(List) :- findall([Id, Type, Name], get_node(Id, Type, Name), List) .
+get_all_nodes(List) :- findall([Type, Name, Id], get_node(Type, Name, Id), List) .
 
 add_node(Type, Name, Id) :- impl_add(node(Id), Type, Name) .
 
@@ -59,7 +59,7 @@ commit . % Save the db to file.
 rollback . % Re-load temp file.
 
 % -----------------------------------------------------------------------
-dump(node(Id)) :- impl_dump(node(Id)) .
+dump(Id) :- impl_dump(node(Id)) .
 
 
 
@@ -276,7 +276,7 @@ remove_all :-
 
 
 impl_dump(node(Id)) :-
-    get_node(Id, Type, Name) ,
+    get_node(Type, Name, Id) ,
     l_write_list(["Node dump.", nl, " Id: ", Id, nl, " Type: ", Type, nl, " Name: ", Name, nl, " Properties:", nl ]) ,
     dump_properties(node(Id)),
     dump_timestamps(node(Id)) .
